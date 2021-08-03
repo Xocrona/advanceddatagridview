@@ -22,31 +22,11 @@ namespace AdvancedDataGridViewSample
 
         private static int DisplayItemsCounter = 100;
 
-        private const int MemoryTestFormsNum = 100;
-        private bool _memorytest = false;
         private object[][] _inrows = new object[][] { };
-
-        private Timer _memorytestclosetimer = null;
-        private Timer _timermemoryusage = null;
-
-        private static bool CollectGarbageOnTimerMemoryUsageUpdate = true;
 
         public FormMain()
         {
             InitializeComponent();
-
-            //set timers
-            _memorytestclosetimer = new Timer(components)
-            {
-                Interval = 10
-            };
-            _timermemoryusage = new Timer(components)
-            {
-                Interval = 2000
-            };
-
-            //trigger the memory usage show
-            _timermemoryusage_Tick(null, null);
 
             //set localization strings
             Dictionary<string, string> translations = new Dictionary<string, string>();
@@ -90,17 +70,10 @@ namespace AdvancedDataGridViewSample
             SetTestData();
         }
 
-        public FormMain(bool memorytest, object[][] inrows)
+        public FormMain(object[][] inrows)
             : this()
         {
-            _memorytest = memorytest;
             _inrows = inrows;
-        }
-
-        private void button_load_Click(object sender, EventArgs e)
-        {
-            //add test data to bindsource
-            AddTestData();
         }
 
         private void SetTestData()
@@ -175,23 +148,6 @@ namespace AdvancedDataGridViewSample
             advancedDataGridView_main.SetFilterChecklistEnabled(advancedDataGridView_main.Columns["double"], false);
             advancedDataGridView_main.SetFilterCustomEnabled(advancedDataGridView_main.Columns["timespan"], false);
             advancedDataGridView_main.CleanSort(advancedDataGridView_main.Columns["datetime"]);
-
-            //memory test
-            if (!_memorytest)
-            {
-                //set timer memory usage
-                _timermemoryusage.Enabled = true;
-                _timermemoryusage.Tick += _timermemoryusage_Tick;
-            }
-            else
-            {
-
-                _memorytestclosetimer.Enabled = true;
-                _memorytestclosetimer.Tick += _memorytestclosetimer_Tick;
-
-                foreach (DataGridViewColumn column in advancedDataGridView_main.Columns)
-                    advancedDataGridView_main.ShowMenuStrip(column);
-            }
         }
 
         private void advancedDataGridView_main_FilterStringChanged(object sender, Zuby.ADGV.AdvancedDataGridView.FilterEventArgs e)
@@ -210,12 +166,6 @@ namespace AdvancedDataGridViewSample
             //otherwise it will be updated by the component
         }
 
-        private void textBox_strfilter_TextChanged(object sender, EventArgs e)
-        {
-            //trigger the filter string changed function when text is changed
-            advancedDataGridView_main.TriggerFilterStringChanged();
-        }
-
         private void bindingSource_main_ListChanged(object sender, ListChangedEventArgs e)
         {
             textBox_total.Text = bindingSource_main.List.Count.ToString();
@@ -224,100 +174,6 @@ namespace AdvancedDataGridViewSample
         private void button_unloadfilters_Click(object sender, EventArgs e)
         {
             advancedDataGridView_main.CleanFilterAndSort();
-        }
-
-        private void advancedDataGridViewSearchToolBar_main_Search(object sender, Zuby.ADGV.AdvancedDataGridViewSearchToolBarSearchEventArgs e)
-        {
-            bool restartsearch = true;
-            int startColumn = 0;
-            int startRow = 0;
-            if (!e.FromBegin)
-            {
-                bool endcol = advancedDataGridView_main.CurrentCell.ColumnIndex + 1 >= advancedDataGridView_main.ColumnCount;
-                bool endrow = advancedDataGridView_main.CurrentCell.RowIndex + 1 >= advancedDataGridView_main.RowCount;
-
-                if (endcol && endrow)
-                {
-                    startColumn = advancedDataGridView_main.CurrentCell.ColumnIndex;
-                    startRow = advancedDataGridView_main.CurrentCell.RowIndex;
-                }
-                else
-                {
-                    startColumn = endcol ? 0 : advancedDataGridView_main.CurrentCell.ColumnIndex + 1;
-                    startRow = advancedDataGridView_main.CurrentCell.RowIndex + (endcol ? 1 : 0);
-                }
-            }
-            DataGridViewCell c = advancedDataGridView_main.FindCell(
-                e.ValueToSearch,
-                e.ColumnToSearch != null ? e.ColumnToSearch.Name : null,
-                startRow,
-                startColumn,
-                e.WholeWord,
-                e.CaseSensitive);
-            if (c == null && restartsearch)
-                c = advancedDataGridView_main.FindCell(
-                    e.ValueToSearch,
-                    e.ColumnToSearch != null ? e.ColumnToSearch.Name : null,
-                    0,
-                    0,
-                    e.WholeWord,
-                    e.CaseSensitive);
-            if (c != null)
-                advancedDataGridView_main.CurrentCell = c;
-        }
-
-
-        private void _timermemoryusage_Tick(object sender, EventArgs e)
-        {
-            if (CollectGarbageOnTimerMemoryUsageUpdate)
-                GC.Collect();
-        }
-
-        private void button_memorytest_Click(object sender, EventArgs e)
-        {
-            //build random data
-            Random r = new Random();
-            Image[] sampleimages = new Image[2];
-            sampleimages[0] = Image.FromFile(Path.Combine(Application.StartupPath, "flag-green_24.png"));
-            sampleimages[1] = Image.FromFile(Path.Combine(Application.StartupPath, "flag-red_24.png"));
-            int maxMinutes = (int)((TimeSpan.FromHours(20) - TimeSpan.FromHours(10)).TotalMinutes);
-            object[][] testrows = new object[100][];
-            for (int i = 0; i < 100; i++)
-            {
-                object[] newrow = new object[] {
-                        i,
-                        Math.Round((decimal)i*2/3, 6),
-                        Math.Round(i % 2 == 0 ? (double)i*2/3 : (double)i/2, 6),
-                        DateTime.Today.AddHours(i*2).AddHours(i%2 == 0 ?i*10+1:0).AddMinutes(i%2 == 0 ?i*10+1:0).AddSeconds(i%2 == 0 ?i*10+1:0).AddMilliseconds(i%2 == 0 ?i*10+1:0).Date,
-                        DateTime.Today.AddHours(i*2).AddHours(i%2 == 0 ?i*10+1:0).AddMinutes(i%2 == 0 ?i*10+1:0).AddSeconds(i%2 == 0 ?i*10+1:0).AddMilliseconds(i%2 == 0 ?i*10+1:0),
-                        i*2 % 3 == 0 ? null : i.ToString()+" str",
-                        i % 2 == 0 ? true:false,
-                        Guid.NewGuid(),
-                        sampleimages[r.Next(0, 2)],
-                        TimeSpan.FromHours(10).Add(TimeSpan.FromMinutes(r.Next(maxMinutes)))
-                    };
-
-                testrows.SetValue(newrow, i);
-            }
-
-            //show the forms
-            for (int i = 0; i < MemoryTestFormsNum; i++)
-            {
-                FormMain formtest = new FormMain(true, testrows);
-                formtest.Show();
-                //wait for the form to be disposed
-                while (!formtest.IsDisposed)
-                {
-                    Application.DoEvents();
-                    System.Threading.Thread.Sleep(100);
-                }
-            }
-        }
-
-        private void _memorytestclosetimer_Tick(object sender, EventArgs e)
-        {
-            _dataTable.Rows.Clear();
-            this.Close();
         }
     }
 }
