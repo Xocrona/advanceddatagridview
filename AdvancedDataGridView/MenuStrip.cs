@@ -400,8 +400,8 @@ namespace Zuby.ADGV
             customFilterLastFiltersListMenuItem.Enabled = (enabled ? DataType != typeof(bool) : false);
             button_filter.Enabled = enabled;
             button_undofilter.Enabled = enabled;
-            checkList.Enabled = enabled;
-            checkTextFilter.Enabled = enabled;
+            //checkList.Enabled = enabled;
+            //checkTextFilter.Enabled = enabled;
         }
 
         /// <summary>
